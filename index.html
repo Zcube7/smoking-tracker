@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4A9D8E">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>吸烟记录</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <h1>🚬 吸烟记录</h1>
+  </header>
+
+  <main class="app-content">
+    <!-- Tab 1: 记录 -->
+    <section id="tab-record" class="tab-panel active">
+      <div class="today-count-card">
+        <span class="today-label">🚬 今日吸烟</span>
+        <span class="today-number" id="today-count">0</span>
+        <span class="today-unit">支</span>
+      </div>
+
+      <button class="record-btn" id="record-btn">
+        <span class="record-btn-icon">🚬</span>
+        <span class="record-btn-text">记录一支</span>
+      </button>
+
+      <div class="today-list-section">
+        <h3 class="section-title">📋 今日记录</h3>
+        <ul class="record-list" id="record-list"></ul>
+        <p class="empty-tip" id="empty-tip">🎉 今天还没有记录，继续保持！</p>
+      </div>
+    </section>
+
+    <!-- Tab 2: 统计 -->
+    <section id="tab-stats" class="tab-panel">
+      <div class="stats-toggle">
+        <button class="toggle-btn active" data-range="week">📅 周</button>
+        <button class="toggle-btn" data-range="month">🗓️ 月</button>
+      </div>
+
+      <div class="chart-card">
+        <h3 class="chart-title">📊 吸烟趋势</h3>
+        <canvas id="stats-chart"></canvas>
+      </div>
+
+      <div class="stats-cards">
+        <div class="stat-card">
+          <span class="stat-emoji">🚬</span>
+          <span class="stat-value" id="stat-today">0</span>
+          <span class="stat-label">今日</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-emoji">📈</span>
+          <span class="stat-value" id="stat-avg">0</span>
+          <span class="stat-label">日均</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-emoji">🔢</span>
+          <span class="stat-value" id="stat-total">0</span>
+          <span class="stat-label">总计</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-emoji">⚠️</span>
+          <span class="stat-value" id="stat-max">0</span>
+          <span class="stat-label">最多</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 3: 目标 -->
+    <section id="tab-goal" class="tab-panel">
+      <div class="goal-limit-card">
+        <span class="goal-limit-label">🎯 每日上限</span>
+        <div class="goal-limit-control">
+          <button class="goal-adj-btn" id="goal-minus">−</button>
+          <span class="goal-limit-value" id="goal-limit">10</span>
+          <span class="goal-limit-unit">支</span>
+          <button class="goal-adj-btn" id="goal-plus">+</button>
+        </div>
+      </div>
+
+      <div class="progress-card">
+        <canvas id="progress-ring" width="200" height="200"></canvas>
+        <div class="progress-text">
+          <span class="progress-current" id="progress-current">0</span>
+          <span class="progress-sep">/</span>
+          <span class="progress-limit" id="progress-limit">10</span>
+        </div>
+        <span class="progress-status" id="progress-status"></span>
+      </div>
+
+      <div class="streak-cards">
+        <div class="streak-card">
+          <span class="streak-emoji">🔥</span>
+          <span class="streak-value" id="streak-current">0</span>
+          <span class="streak-label">连续达标（天）</span>
+        </div>
+        <div class="streak-card">
+          <span class="streak-emoji">🏆</span>
+          <span class="streak-value" id="streak-best">0</span>
+          <span class="streak-label">历史最佳（天）</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 4: 排行榜 -->
+    <section id="tab-rank" class="tab-panel">
+      <!-- 未加入房间时显示 -->
+      <div class="rank-setup" id="rank-setup">
+        <div class="rank-setup-card">
+          <span class="rank-setup-icon">👤</span>
+          <h3 class="rank-setup-title">设置昵称</h3>
+          <input type="text" class="rank-input" id="rank-nickname" placeholder="输入你的昵称" maxlength="12">
+        </div>
+
+        <div class="rank-setup-card">
+          <span class="rank-setup-icon">🏠</span>
+          <h3 class="rank-setup-title">创建房间</h3>
+          <p class="rank-setup-desc">创建一个新房间，邀请朋友加入</p>
+          <button class="rank-action-btn" id="rank-create">创建房间</button>
+        </div>
+
+        <div class="rank-setup-card">
+          <span class="rank-setup-icon">🚪</span>
+          <h3 class="rank-setup-title">加入房间</h3>
+          <input type="text" class="rank-input" id="rank-room-input" placeholder="输入6位房间码" maxlength="6" style="text-transform:uppercase">
+          <button class="rank-action-btn rank-action-btn-secondary" id="rank-join">加入房间</button>
+        </div>
+
+        <p class="rank-error" id="rank-error"></p>
+      </div>
+
+      <!-- 已加入房间时显示 -->
+      <div class="rank-board" id="rank-board" style="display:none">
+        <div class="rank-room-header">
+          <span class="rank-room-label">🏠 房间</span>
+          <span class="rank-room-code" id="rank-room-code">------</span>
+          <button class="rank-copy-btn" id="rank-copy">📋 复制</button>
+          <button class="rank-leave-btn" id="rank-leave">退出</button>
+        </div>
+
+        <div class="rank-toggle">
+          <button class="rank-toggle-btn active" data-view="least">🌿 少抽</button>
+          <button class="rank-toggle-btn" data-view="streak">🔥 达标</button>
+          <button class="rank-toggle-btn" data-view="most">💨 烟鬼</button>
+        </div>
+
+        <ul class="rank-list" id="rank-list"></ul>
+        <p class="rank-empty" id="rank-empty" style="display:none">暂无数据，记录一支试试</p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tab-bar">
+    <button class="tab-item active" data-tab="record">
+      <span class="tab-emoji">🚬</span>
+      <span>记录</span>
+    </button>
+    <button class="tab-item" data-tab="stats">
+      <span class="tab-emoji">📊</span>
+      <span>统计</span>
+    </button>
+    <button class="tab-item" data-tab="goal">
+      <span class="tab-emoji">🎯</span>
+      <span>目标</span>
+    </button>
+    <button class="tab-item" data-tab="rank">
+      <span class="tab-emoji">🏅</span>
+      <span>排行</span>
+    </button>
+  </nav>
+
+  <script src="js/record.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/goal.js"></script>
+  <script src="js/rank.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
