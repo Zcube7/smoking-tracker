@@ -1,6 +1,9 @@
 // record.js - 吸烟记录模块
 const Record = (() => {
   const STORAGE_KEY = 'smoking_records';
+  const HOLD_DURATION = 650;
+  let holdTimer = null;
+  let isHolding = false;
 
   function getAll() {
     try {
@@ -84,21 +87,52 @@ const Record = (() => {
     }).join('');
   }
 
+  function playRecordEffect(btn) {
+    btn.classList.remove('pulse', 'smoke');
+    void btn.offsetWidth;
+    btn.classList.add('pulse', 'smoke');
+    setTimeout(() => btn.classList.remove('smoke'), 900);
+  }
+
+  function commitRecord(btn) {
+    add();
+    playRecordEffect(btn);
+    renderTodayList();
+    // 触发其他模块更新
+    if (typeof Stats !== 'undefined') Stats.refresh();
+    if (typeof Goal !== 'undefined') Goal.refresh();
+    if (typeof Rank !== 'undefined') Rank.syncToFirebase();
+  }
+
+  function clearHold(btn) {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    if (btn) btn.classList.remove('holding');
+    isHolding = false;
+  }
+
   // 初始化
   function init() {
-    document.getElementById('record-btn').addEventListener('click', () => {
-      add();
-      // 按钮脉冲动画
-      const btn = document.getElementById('record-btn');
-      btn.classList.remove('pulse');
-      void btn.offsetWidth;
-      btn.classList.add('pulse');
-      renderTodayList();
-      // 触发其他模块更新
-      if (typeof Stats !== 'undefined') Stats.refresh();
-      if (typeof Goal !== 'undefined') Goal.refresh();
-      if (typeof Rank !== 'undefined') Rank.syncToFirebase();
+    const recordBtn = document.getElementById('record-btn');
+
+    recordBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (isHolding) return;
+      isHolding = true;
+      recordBtn.classList.add('holding');
+      holdTimer = setTimeout(() => {
+        commitRecord(recordBtn);
+        clearHold(recordBtn);
+      }, HOLD_DURATION);
     });
+
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach((eventName) => {
+      recordBtn.addEventListener(eventName, () => {
+        if (!holdTimer) return;
+        clearHold(recordBtn);
+      });
+    });
+    recordBtn.addEventListener('contextmenu', (e) => e.preventDefault());
 
     document.getElementById('record-list').addEventListener('click', (e) => {
       if (e.target.classList.contains('record-delete')) {

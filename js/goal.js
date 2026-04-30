@@ -60,7 +60,7 @@ const Goal = (() => {
     const canvas = document.getElementById('progress-ring');
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const size = 200;
+    const size = 230;
 
     canvas.width = size * dpr;
     canvas.height = size * dpr;
@@ -70,8 +70,8 @@ const Goal = (() => {
 
     const cx = size / 2;
     const cy = size / 2;
-    const radius = 80;
-    const lineWidth = 14;
+    const radius = 92;
+    const lineWidth = 16;
     const startAngle = -Math.PI / 2;
 
     // 背景环

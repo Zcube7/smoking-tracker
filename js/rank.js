@@ -17,7 +17,7 @@ const Rank = (() => {
   let db = null;
   let roomRef = null;
   let unsubscribe = null;
-  let currentView = 'least';
+  let currentView = 'most';
   let membersCache = {};
 
   function initFirebase() {

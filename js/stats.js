@@ -35,13 +35,27 @@ const Stats = (() => {
     return { labels, data, dates };
   }
 
+  function getStatusColor(count) {
+    const limit = Goal.getGoal().dailyLimit;
+    if (limit > 0 && count > limit) {
+      return { bg: 'rgba(225, 112, 85, 0.72)', border: '#E17055' };
+    }
+    if (limit > 0 && count >= Math.ceil(limit * 0.8)) {
+      return { bg: 'rgba(253, 203, 110, 0.78)', border: '#E6A23C' };
+    }
+    return { bg: 'rgba(0, 184, 148, 0.58)', border: '#00B894' };
+  }
+
   function renderChart() {
     const ctx = document.getElementById('stats-chart');
     const { labels, data } = buildChartData(currentRange);
+    const colors = data.map(getStatusColor);
 
     if (chart) {
       chart.data.labels = labels;
       chart.data.datasets[0].data = data;
+      chart.data.datasets[0].backgroundColor = colors.map((c) => c.bg);
+      chart.data.datasets[0].borderColor = colors.map((c) => c.border);
       chart.update();
     } else {
       chart = new Chart(ctx, {
@@ -51,8 +65,8 @@ const Stats = (() => {
           datasets: [{
             label: '吸烟数',
             data,
-            backgroundColor: 'rgba(74, 157, 142, 0.6)',
-            borderColor: 'rgba(74, 157, 142, 1)',
+            backgroundColor: colors.map((c) => c.bg),
+            borderColor: colors.map((c) => c.border),
             borderWidth: 1,
             borderRadius: 4,
           }]
@@ -82,6 +96,7 @@ const Stats = (() => {
   function renderStats() {
     const records = Record.getAll();
     const todayCount = Record.getToday().length;
+    const todayCard = document.getElementById('stat-today').closest('.stat-card');
 
     // 按天聚合
     const dayMap = {};
@@ -100,6 +115,16 @@ const Stats = (() => {
     document.getElementById('stat-avg').textContent = avg;
     document.getElementById('stat-total').textContent = total;
     document.getElementById('stat-max').textContent = max;
+
+    todayCard.classList.remove('stat-card-safe', 'stat-card-warning', 'stat-card-danger');
+    const limit = Goal.getGoal().dailyLimit;
+    if (limit > 0 && todayCount > limit) {
+      todayCard.classList.add('stat-card-danger');
+    } else if (limit > 0 && todayCount >= Math.ceil(limit * 0.8)) {
+      todayCard.classList.add('stat-card-warning');
+    } else {
+      todayCard.classList.add('stat-card-safe');
+    }
   }
 
   function refresh() {
